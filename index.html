@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ZORDO - Security Terminal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;900&family=Source+Code+Pro:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --neon-red: #ff0000; --neon-gold: #ffcc00; --dark-bg: #050505; }
+    
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; font-family: 'Source Code Pro', monospace; }
+
+    /* Arka Plan USOM Sitesi */
+    #usom-bg {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      border: none; z-index: 1; filter: brightness(0.3) blur(2px);
+      pointer-events: none; /* Arka plana tıklanmasını engeller */
+    }
+
+    #login-overlay {
+      position: relative; z-index: 2; width: 100%; height: 100%;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .terminal-box {
+      background: rgba(13, 13, 13, 0.95); padding: 40px; border: 2px solid var(--neon-red);
+      text-align: center; width: 90%; max-width: 400px;
+      box-shadow: 0 0 50px rgba(255, 0, 0, 0.3);
+    }
+
+    h1 { font-family: 'Orbitron', sans-serif; color: var(--neon-red); letter-spacing: 10px; margin-bottom: 30px; }
+
+    input[type="password"] {
+      width: 80%; padding: 15px; margin-bottom: 20px; background: #000;
+      border: 1px solid #333; color: var(--neon-gold); text-align: center; font-size: 1.2rem; outline: none;
+    }
+
+    .btn {
+      background: var(--neon-red); color: #000; border: none; padding: 15px 30px;
+      font-weight: 900; cursor: pointer; font-family: 'Orbitron', sans-serif;
+      width: 90%; text-transform: uppercase; transition: 0.3s;
+    }
+    .btn:hover { background: #fff; box-shadow: 0 0 20px #fff; }
+
+    /* Arşiv Bölümü */
+    #archiveSection {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--dark-bg); z-index: 10; overflow-y: auto; padding: 40px 20px;
+      box-sizing: border-box;
+    }
+    .section-title { font-family: 'Orbitron', sans-serif; color: var(--neon-gold); border-bottom: 2px solid var(--neon-red); padding: 10px; margin-top: 40px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 15px; margin-top: 20px; }
+    .file-card { background: #0a0a0a; border: 1px solid #222; padding: 15px; cursor: pointer; border-left: 4px solid var(--neon-red); transition: 0.2s; }
+    .file-card:hover { background: #151515; border-color: var(--neon-red); color: var(--neon-gold); }
+
+    /* Modal */
+    .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 100; }
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #000; border: 2px solid var(--neon-red); padding: 40px; z-index: 101; text-align: center; }
+    .pass-display { color: var(--neon-gold); font-size: 1.8rem; margin: 20px 0; border: 1px dashed var(--neon-gold); padding: 10px; }
+  </style>
+</head>
+<body>
+
+<iframe id="usom-bg" src="https://www.usom.gov.tr"></iframe>
+
+<div id="login-overlay">
+  <div class="terminal-box">
+    <h1>ZORDO</h1>
+    <div style="color: #666; margin-bottom: 20px; font-size: 0.7rem;">DECRYPTING ACCESS PORTAL...</div>
+    <input type="password" id="passInput" placeholder="SYSTEM KEY" />
+    <button class="btn" onclick="verify()">EXECUTE LOGIN</button>
+    <div id="status" style="margin-top: 20px; color: var(--neon-gold); font-size: 0.8rem;">KALAN HAK: 3</div>
+  </div>
+</div>
+
+<div id="archiveSection">
+  <h1 style="text-align: center;">TERMINAL ACCESS GRANTED</h1>
+  <div class="section-title">BOT ALTYAPILARI</div>
+  <div class="grid" id="bot-list"></div>
+  <div class="section-title">VERI SETLERI (DATA)</div>
+  <div class="grid" id="data-list"></div>
+  <div class="section-title">KIMLIK & MATERYAL</div>
+  <div class="grid" id="id-list"></div>
+  <div class="section-title">EGITIM & KURSLAR</div>
+  <div class="grid" id="edu-list"></div>
+</div>
+
+<div class="overlay" id="overlay"></div>
+<div id="modal">
+  <div style="color:var(--neon-red); font-weight:bold;">DOSYA ŞİFRESİ:</div>
+  <div class="pass-display">@devrelax</div>
+  <button class="btn" id="goBtn" style="width: auto;">LINKI AC</button>
+</div>
+
+<script>
+  let tries = 0;
+  const _H = "79633534d0083a31c071746214a1a5113d55167098e983226a31037305d2da3f"; // userx
+
+  async function verify() {
+    const val = document.getElementById('passInput').value.trim().toLowerCase();
+    if(!val) return;
+
+    const buf = new TextEncoder().encode(val);
+    const hBuf = await crypto.subtle.digest('SHA-256', buf);
+    const hash = Array.from(new Uint8Array(hBuf)).map(b => b.toString(16).padStart(2, '0')).join('');
+
+    if (hash === _H) {
+      document.getElementById('login-overlay').style.display = 'none';
+      document.getElementById('usom-bg').style.display = 'none';
+      document.getElementById('archiveSection').style.display = 'block';
+      render();
+    } else {
+      tries++;
+      document.getElementById('status').innerText = `KALAN HAK: ${3 - tries}`;
+      if (tries >= 3) {
+        document.body.style.background = "red";
+        alert("SİSTEM İHLALİ! YETKİLİLERE BİLDİRİLİYOR...");
+        window.location.href = "https://www.usom.gov.tr";
+      } else {
+        alert("ACCESS DENIED!");
+        document.getElementById('passInput').value = "";
+      }
+    }
+  }
+
+  const db = [
+    { n: "8 Adet Discord & Telegram Bot", u: "https://drive.google.com/file/d/1H7FqzdRRygg983YcHzXRMDkzOV-TJhvq/view?usp=sharing", c: "bot" },
+    { n: "Api Sunucusu Alt Yapısı", u: "https://drive.google.com/file/d/1ZilMYtojtnEIoMoAzf8foBaLkzx6DC0C/view?usp=sharing", c: "bot" },
+    { n: "400k Vesika", u: "https://drive.google.com/file/d/1bmgiE1ZQ4aMQEzDRSSAs9WVfX2Kls4QV/view?usp=sharing", c: "id" },
+    { n: "60k Vesika", u: "https://drive.google.com/file/d/1gisHgOssuvrtCy7mONEv3JmDiR3N6id9/view?usp=sharing", c: "id" },
+    { n: "540x Yabancı Kimlik", u: "https://drive.google.com/file/d/1WQZknfgx1lci-LcQXMHgBcB-J2MfAd6Q/view?usp=drive_link", c: "id" },
+    { n: "542x Suriye Pasaport", u: "https://drive.google.com/file/d/1rV0h3lrTAJ9nIfRYdOnxO9RyxXcHNjuF/view?usp=sharing", c: "id" },
+    { n: "109m Tc Pro", u: "https://drive.google.com/file/d/15QnumnhgZsiAy9vaILMFpxMpGymWvk57/view?usp=sharing", c: "data" },
+    { n: "195m Gsm Datası", u: "https://drive.google.com/file/d/16UUUBaqFqRD1guzNEk8hjvKZ3cHfZNUX/view?usp=sharing", c: "data" },
+    { n: "97m 33 İl Tapu", u: "https://drive.google.com/file/d/1uBsIGe5mFe_8tiqFewywDextSPF6Rabv/view?usp=sharing", c: "data" },
+    { n: "8m İstanbul Tapu", u: "https://drive.google.com/file/d/1juEwo-4jQoGKwbcH8Stc9sqZ5yPlkRpE/view?usp=sharing", c: "data" },
+    { n: "9m Ak Parti (Akbis)", u: "https://drive.google.com/file/d/1_Us9ti7HUc8gHkrcveO1Os6MXE-RZ3m5/view?usp=sharing", c: "data" },
+    { n: "Etik Hacker Eğitim Seti", u: "https://drive.google.com/file/d/1HW1FOjb4CwTUW5c0Komrdv_x5aRnQHxT/view?usp=sharing", c: "edu" },
+    { n: "2024 Tyt Ayt Arşivi", u: "https://drive.google.com/file/d/1vuXcAt7bqaAi02-F36hs40BctoDL1PbX/view?usp=sharing", c: "edu" }
+  ];
+
+  function render() {
+    db.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'file-card';
+      card.innerText = "> " + item.n;
+      card.onclick = () => {
+        document.getElementById('overlay').style.display = 'block';
+        document.getElementById('modal').style.display = 'block';
+        document.getElementById('goBtn').onclick = () => {
+          window.open(item.u, '_blank');
+          document.getElementById('overlay').style.display = 'none';
+          document.getElementById('modal').style.display = 'none';
+        };
+      };
+      document.getElementById(item.c + '-list').appendChild(card);
+    });
+  }
+</script>
+</body>
+</html>
